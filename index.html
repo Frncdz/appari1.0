@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#111111">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="Appari">
+  <meta name="description" content="Appari — Tus finanzas, en tus manos y bajo tu control">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <title>Appari</title>
+
+  <!-- PWA Manifest -->
+  <link rel="manifest" href="manifest.json">
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+  <!-- Styles -->
+  <link rel="stylesheet" href="styles.css">
+
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js" defer></script>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ═══════════════════════════════════════
+       LOADING OVERLAY
+  ══════════════════════════════════════════ -->
+  <div class="loading-overlay" id="loading">
+    <div class="loading-logo">App<span>ari</span></div>
+    <div class="loading-spinner"></div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div class="toast" id="toast"></div>
+
+  <!-- ═══════════════════════════════════════
+       PIN SCREEN  (#111 dark bg)
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="screen-pin">
+    <div style="display:flex;flex-direction:column;align-items:center;flex:1;padding:72px 32px 52px;">
+
+      <div class="pin-logo">
+        <svg viewBox="0 0 68 68" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="68" height="68" rx="20" fill="url(#pg)"/>
+          <path d="M21 46 L34 20 L47 46" stroke="white" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M25.5 37 L42.5 37" stroke="white" stroke-width="4" stroke-linecap="round"/>
+          <defs>
+            <linearGradient id="pg" x1="0" y1="0" x2="68" y2="68">
+              <stop stop-color="#FF6B2B"/>
+              <stop offset="1" stop-color="#FF8C55"/>
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+
+      <div class="pin-app-name">App<span>ari</span></div>
+      <div class="pin-tagline">Tus finanzas, en tus manos y bajo tu control</div>
+
+      <div class="pin-label" id="pin-label">Ingresa tu PIN</div>
+
+      <div class="pin-dots" id="pin-dots">
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+        <div class="pin-dot"></div>
+      </div>
+
+      <div class="pin-grid" id="pin-grid">
+        <button class="pin-btn" data-n="1">1</button>
+        <button class="pin-btn" data-n="2">2</button>
+        <button class="pin-btn" data-n="3">3</button>
+        <button class="pin-btn" data-n="4">4</button>
+        <button class="pin-btn" data-n="5">5</button>
+        <button class="pin-btn" data-n="6">6</button>
+        <button class="pin-btn" data-n="7">7</button>
+        <button class="pin-btn" data-n="8">8</button>
+        <button class="pin-btn" data-n="9">9</button>
+        <button class="pin-btn empty" style="pointer-events:none;opacity:0;"></button>
+        <button class="pin-btn" data-n="0">0</button>
+        <button class="pin-btn del" id="pin-del">⌫</button>
+      </div>
+
+      <div class="pin-error"    id="pin-error"></div>
+      <div class="pin-setup-info" id="pin-setup-info"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       HOME SCREEN
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="screen-home">
+
+    <!-- Header -->
+    <div class="app-header">
+      <div class="header-top">
+        <div>
+          <div class="greeting-sub" id="greeting-sub">Buenos días</div>
+          <div class="greeting-name" id="header-name">Usuario</div>
+        </div>
+        <div class="header-avatar" id="header-avatar">U</div>
+      </div>
+
+      <!-- Balance card -->
+      <div class="balance-card">
+        <div class="balance-label">Saldo disponible · Este mes</div>
+        <div class="balance-row">
+          <div class="balance-amount" id="balance-display">S/ 0.00</div>
+          <button class="balance-eye" id="balance-eye-btn" onclick="toggleBalance()" aria-label="Mostrar/ocultar saldo">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+        <div class="balance-subrow">
+          <div class="balance-stat">
+            <div class="balance-stat-icon up">📈</div>
+            <div>
+              <div class="balance-stat-label">Ingresos</div>
+              <div class="balance-stat-val" id="total-income-header">S/ 0.00</div>
+            </div>
+          </div>
+          <div class="balance-stat">
+            <div class="balance-stat-icon down">📉</div>
+            <div>
+              <div class="balance-stat-label">Gastos</div>
+              <div class="balance-stat-val" id="total-expense-header">S/ 0.00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scrollable content -->
+    <div class="main-content">
+
+      <!-- Analysis card -->
+      <div class="analysis-card" id="analysis-card">
+        <div class="analysis-row">
+          <div class="analysis-icon" id="analysis-emoji">📊</div>
+          <div>
+            <div class="analysis-text" id="analysis-text">Cargando análisis…</div>
+            <div class="analysis-sub"  id="analysis-sub"></div>
+          </div>
+        </div>
+        <div class="analysis-bar-wrap">
+          <div class="analysis-bar" id="analysis-bar" style="width:0%"></div>
+        </div>
+      </div>
+
+      <!-- Movements -->
+      <div class="movements-header">
+        <div class="section-title">Movimientos</div>
+      </div>
+      <div class="movements-filter" id="filter-chips">
+        <div class="filter-chip active" data-filter="all">Todos</div>
+        <div class="filter-chip" data-filter="income">Ingresos</div>
+        <div class="filter-chip" data-filter="expense">Gastos</div>
+      </div>
+      <div id="movements-list"></div>
+    </div>
+
+    <!-- Nav -->
+    <nav class="nav-bar">
+      <button class="nav-item active" data-tab="home" onclick="switchTab('home')">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        <span>Inicio</span>
+      </button>
+      <button class="nav-item" data-tab="reports" onclick="switchTab('reports')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+        <span>Reportes</span>
+      </button>
+      <button class="nav-add-btn" onclick="openAddModal()" aria-label="Nuevo movimiento">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </button>
+      <button class="nav-item" data-tab="categories" onclick="switchTab('categories')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+        <span>Categorías</span>
+      </button>
+      <button class="nav-item" data-tab="settings" onclick="switchTab('settings')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+        <span>Ajustes</span>
+      </button>
+    </nav>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       REPORTS SCREEN
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="screen-reports">
+    <div class="reports-header">
+      <div class="reports-title">Reportes</div>
+      <div class="reports-sub">Análisis de tus finanzas</div>
+    </div>
+    <div class="main-content">
+      <div class="month-tabs" id="month-tabs"></div>
+      <div class="summary-grid">
+        <div class="summary-tile"><div class="summary-tile-label">Ingresos</div><div class="summary-tile-val green" id="rep-income">S/ 0.00</div></div>
+        <div class="summary-tile"><div class="summary-tile-label">Gastos</div><div class="summary-tile-val red" id="rep-expense">S/ 0.00</div></div>
+        <div class="summary-tile"><div class="summary-tile-label">Balance</div><div class="summary-tile-val" id="rep-balance">S/ 0.00</div></div>
+        <div class="summary-tile"><div class="summary-tile-label">Transacciones</div><div class="summary-tile-val" id="rep-count">0</div></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Distribución de Gastos</div>
+        <div class="chart-wrap"><canvas id="expenseChart"></canvas></div>
+        <div class="chart-legend" id="chart-legend"></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-title">Ingresos vs Gastos (últimos 6 meses)</div>
+        <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+      </div>
+      <button class="btn-primary" onclick="exportPDF()" style="margin-bottom:16px;">
+        📄 Exportar Reporte PDF
+      </button>
+    </div>
+    <nav class="nav-bar">
+      <button class="nav-item" data-tab="home" onclick="switchTab('home')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg><span>Inicio</span></button>
+      <button class="nav-item active" data-tab="reports" onclick="switchTab('reports')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Reportes</span></button>
+      <button class="nav-add-btn" onclick="openAddModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="nav-item" data-tab="categories" onclick="switchTab('categories')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Categorías</span></button>
+      <button class="nav-item" data-tab="settings" onclick="switchTab('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Ajustes</span></button>
+    </nav>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       CATEGORIES SCREEN
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="screen-categories">
+    <div class="categories-header">
+      <div class="cat-manage-title">Categorías</div>
+      <div class="cat-manage-sub">Personaliza tu lista de categorías</div>
+    </div>
+    <div class="cat-list" id="cat-list">
+      <button class="add-cat-btn" onclick="openAddCategoryModal()">
+        <span style="font-size:20px;">＋</span> Nueva categoría
+      </button>
+    </div>
+    <nav class="nav-bar">
+      <button class="nav-item" data-tab="home" onclick="switchTab('home')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg><span>Inicio</span></button>
+      <button class="nav-item" data-tab="reports" onclick="switchTab('reports')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Reportes</span></button>
+      <button class="nav-add-btn" onclick="openAddModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="nav-item active" data-tab="categories" onclick="switchTab('categories')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Categorías</span></button>
+      <button class="nav-item" data-tab="settings" onclick="switchTab('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Ajustes</span></button>
+    </nav>
+  </div>
+
+  <!-- ═══════════════════════════════════════
+       SETTINGS SCREEN
+  ══════════════════════════════════════════ -->
+  <div class="screen" id="screen-settings">
+    <div class="settings-header">
+      <div class="settings-title">Ajustes</div>
+    </div>
+    <div class="settings-content">
+      <div class="settings-section">
+        <div class="settings-section-title">Tu nombre</div>
+        <input class="settings-name-input" id="settings-name" type="text" placeholder="Ingresa tu nombre" oninput="updateName(this.value)" maxlength="32">
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Seguridad</div>
+        <div class="settings-item" onclick="openChangePinModal()">
+          <div class="settings-item-icon" style="background:#FFE8DC;">🔐</div>
+          <div class="settings-item-info">
+            <div class="settings-item-label">Cambiar PIN</div>
+            <div class="settings-item-sub">Modifica tu PIN de acceso de 4 dígitos</div>
+          </div>
+          <span class="settings-item-arrow">›</span>
+        </div>
+      </div>
+      <div class="settings-section">
+        <div class="settings-section-title">Datos y Exportación</div>
+        <div class="settings-item" onclick="exportPDF()">
+          <div class="settings-item-icon" style="background:#E0F0FF;">📄</div>
+          <div class="settings-item-info">
+            <div class="settings-item-label">Exportar Reporte PDF</div>
+            <div class="settings-item-sub">Informe ejecutivo del mes actual</div>
+          </div>
+          <span class="settings-item-arrow">›</span>
+        </div>
+        <div class="settings-item" onclick="confirmClearData()">
+          <div class="settings-item-icon" style="background:#FFE0DE;">🗑️</div>
+          <div class="settings-item-info">
+            <div class="settings-item-label" style="color:#9B1107;">Borrar todos los datos</div>
+            <div class="settings-item-sub">Esta acción no se puede deshacer</div>
+          </div>
+          <span class="settings-item-arrow" style="color:#9B1107;">›</span>
+        </div>
+      </div>
+      <div class="appari-brand">
+        <div class="appari-brand-name">App<span>ari</span></div>
+        <div class="appari-brand-tag">Tus finanzas, en tus manos y bajo tu control</div>
+        <div class="appari-brand-version">v2.0 · PWA · IndexedDB</div>
+      </div>
+    </div>
+    <nav class="nav-bar">
+      <button class="nav-item" data-tab="home" onclick="switchTab('home')"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg><span>Inicio</span></button>
+      <button class="nav-item" data-tab="reports" onclick="switchTab('reports')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><span>Reportes</span></button>
+      <button class="nav-add-btn" onclick="openAddModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+      <button class="nav-item" data-tab="categories" onclick="switchTab('categories')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg><span>Categorías</span></button>
+      <button class="nav-item active" data-tab="settings" onclick="switchTab('settings')"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg><span>Ajustes</span></button>
+    </nav>
+  </div>
+
+</div><!-- #app -->
+
+<!-- ═══════════════════════════════════════
+     MODALS
+══════════════════════════════════════════ -->
+
+<!-- Add / Edit Movement -->
+<div class="modal-overlay" id="modal-add">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-add-title">Nuevo Movimiento</div>
+    <div class="modal-subtitle">Registra un ingreso o gasto</div>
+
+    <div class="type-toggle">
+      <button class="type-btn" id="type-income"  onclick="selectType('income')">📈 Ingreso</button>
+      <button class="type-btn selected-expense" id="type-expense" onclick="selectType('expense')">📉 Gasto</button>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Monto (S/)</label>
+      <input class="form-input" id="form-amount" type="number" inputmode="decimal" step="0.01" min="0" placeholder="0.00">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Descripción</label>
+      <input class="form-input" id="form-desc" type="text" placeholder="¿En qué lo gastaste?">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Fecha</label>
+      <input class="form-input" id="form-date" type="date">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Categoría</label>
+      <div class="categories-grid" id="modal-categories"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nota (opcional)</label>
+      <textarea class="form-textarea" id="form-note" rows="2" placeholder="Detalles adicionales…" style="resize:none;"></textarea>
+    </div>
+
+    <button class="btn-primary"    onclick="saveMovement()">Guardar movimiento</button>
+    <button class="btn-secondary"  onclick="closeModal('modal-add')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Movement Detail -->
+<div class="modal-overlay" id="modal-detail">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div style="text-align:center;padding-bottom:4px;">
+      <div style="font-size:52px;margin-bottom:4px;" id="detail-emoji">💰</div>
+      <div class="detail-modal-amount" id="detail-amount">S/ 0.00</div>
+      <div id="detail-type-badge" style="margin-top:6px;"></div>
+    </div>
+    <div style="margin-top:18px;">
+      <div class="detail-row"><label>Descripción</label><span id="detail-desc">—</span></div>
+      <div class="detail-row"><label>Categoría</label>  <span id="detail-cat">—</span></div>
+      <div class="detail-row"><label>Fecha</label>      <span id="detail-date">—</span></div>
+      <div class="detail-row"><label>Nota</label>       <span id="detail-note">—</span></div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:20px;">
+      <button class="btn-secondary" style="flex:1;margin:0;" onclick="editCurrentDetail()">✏️ Editar</button>
+      <button class="btn-secondary btn-danger" style="flex:1;margin:0;" onclick="deleteCurrentDetail()">🗑️ Eliminar</button>
+    </div>
+    <button class="btn-secondary" onclick="closeModal('modal-detail')" style="margin-top:8px;">Cerrar</button>
+  </div>
+</div>
+
+<!-- Add / Edit Category -->
+<div class="modal-overlay" id="modal-category">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-cat-title">Nueva Categoría</div>
+    <div class="modal-subtitle">Personaliza con tu propio ícono y nombre</div>
+    <div class="form-group">
+      <label class="form-label">Ícono</label>
+      <div class="emoji-picker" id="emoji-picker"></div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nombre</label>
+      <input class="form-input" id="form-cat-name" type="text" placeholder="ej. Carne, Gas, Alquiler…" maxlength="24">
+    </div>
+    <button class="btn-primary"   onclick="saveCategory()">Guardar categoría</button>
+    <button class="btn-secondary" onclick="closeModal('modal-category')">Cancelar</button>
+  </div>
+</div>
+
+<!-- Change PIN -->
+<div class="modal-overlay" id="modal-pin-change">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Cambiar PIN</div>
+    <div class="modal-subtitle">Actualiza tu PIN de seguridad</div>
+    <div class="form-group">
+      <label class="form-label">PIN Actual</label>
+      <input class="form-input" id="pin-current" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Nuevo PIN</label>
+      <input class="form-input" id="pin-new" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+    </div>
+    <div class="form-group">
+      <label class="form-label">Confirmar Nuevo PIN</label>
+      <input class="form-input" id="pin-confirm" type="password" inputmode="numeric" maxlength="4" placeholder="••••">
+    </div>
+    <button class="btn-primary"   onclick="changePin()">Actualizar PIN</button>
+    <button class="btn-secondary" onclick="closeModal('modal-pin-change')">Cancelar</button>
+  </div>
+</div>
+
+<!-- App JS (loaded last so DOM is ready) -->
+<script src="app.js"></script>
+
+</body>
+</html>
